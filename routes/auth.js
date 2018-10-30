@@ -15,10 +15,16 @@ function createAuthToken (user) {
 
 const options = {session: false, failWithError: true};
 const localAuth = passport.authenticate('local', options);
-
-router.post('/', localAuth, function (req, res) {
+//login
+router.post('/login', localAuth, function (req, res) {
   const authToken = createAuthToken(req.user.toJSON())
   return res.json({authToken});
 });
 
+const jwtAuth = passport.authenticate('jwt', { session: false, failWithError: true });
+//refresh
+router.post('/refresh', jwtAuth, (req, res) => {
+  const authToken = createAuthToken(req.user.toJSON());
+  res.json({ authToken });
+});
 module.exports = router;
