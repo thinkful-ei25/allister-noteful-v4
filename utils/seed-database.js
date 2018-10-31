@@ -17,15 +17,15 @@ mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useCreateIndex: true })
     console.info('Dropping Database');
     return mongoose.connection.db.dropDatabase();
   })
-  .then(() => {
-    console.info('Deleting Data...');
-    return Promise.all([
-      Note.deleteMany(),
-      Folder.deleteMany(),
-      Tag.deleteMany(),
-      User.deleteMany()
-    ])
-  })
+  // .then(() => {
+  //   console.info('Deleting Data...');
+  //   return Promise.all([
+  //     Note.deleteMany(),
+  //     Folder.deleteMany(),
+  //     Tag.deleteMany(),
+  //     User.deleteMany()
+  //   ])
+  // })
   .then(() => {
     console.info('Seeding Database...');
     return Promise.all([
