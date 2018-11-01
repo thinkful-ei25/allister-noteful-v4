@@ -4,6 +4,8 @@ const express = require('express');
 const mongoose = require('mongoose');
 const passport = require('passport');
 const Note = require('../models/note');
+const Folder = require('../models/folder');
+const Tag = require('../models/tag')
 
 const router = express.Router();
 
@@ -15,7 +17,7 @@ router.get('/', (req, res, next) => {
   const { searchTerm, folderId, tagId } = req.query;
   const userId = req.user.id;
 
-  let filter = {userId};
+  let filter = { userId };
 
   if (searchTerm) {
     const re = new RegExp(searchTerm, 'i');
@@ -67,6 +69,32 @@ router.get('/:id', (req, res, next) => {
     });
 });
 
+//Validate Tags and Folders Functions
+
+
+function validateFolders(folderId, userId) {
+  return new Promise(function (resolve, reject) {
+    if (folderId) {
+    Folder.find({ userId, _id: folderId })
+      .then(result => {
+        if (!(result.length)) {
+          const err = new Error('The folderid is not valid');
+          err.status = 400;
+          reject(err)
+        }
+        resolve('folder valid')
+      })
+    }
+    else { resolve ('no folder id in new note')}
+  })
+}
+
+
+
+
+
+
+
 /* ========== POST/CREATE AN ITEM ========== */
 router.post('/', (req, res, next) => {
   const { title, content, folderId, tags } = req.body;
@@ -98,13 +126,17 @@ router.post('/', (req, res, next) => {
     delete newNote.folderId;
   }
 
-  Note.create(newNote)
+  Promise.all([validateFolders(folderId, userId)])
+.then((result) => {
+      console.log(result)
+      return Note.create(newNote)
+    })
     .then(result => {
       res.location(`${req.originalUrl}/${result.id}`).status(201).json(result);
     })
     .catch(err => {
-      next(err);
-    });
+      next(err)
+    })
 });
 
 /* ========== PUT/UPDATE A SINGLE ITEM ========== */
@@ -151,11 +183,14 @@ router.put('/:id', (req, res, next) => {
 
   if (toUpdate.folderId === '') {
     delete toUpdate.folderId;
-    toUpdate.$unset = {folderId : 1};
+    toUpdate.$unset = { folderId: 1 };
   }
-
-  Note.findOneAndUpdate({ _id: id, userId }, toUpdate, { new: true })
+  Promise.all([validateFolders(toUpdate.folderId, userId)])
+  .then(() => {
+  return Note.findOneAndUpdate({ _id: id, userId }, toUpdate, { new: true })
+  })
     .then(result => {
+      console.log(result)
       if (result) {
         res.json(result);
       } else {
