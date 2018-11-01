@@ -8,9 +8,10 @@ const User = require('../models/user')
 const router = express.Router();
 
 router.post('/', (req, res, next) => {
-    const { fullName, username, password } = req.body;
-    const requiredFields = ['username', 'password'];
+  let { fullname, username, password } = req.body;
+  const requiredFields = ['username', 'password'];
   const missingField = requiredFields.find(field => !(field in req.body));
+  
 
   if (missingField) {
     const err = new Error(`Missing '${missingField}' in request body`);
@@ -18,7 +19,7 @@ router.post('/', (req, res, next) => {
     return next(err);
   }
 
-  const stringFields = ['username', 'password', 'firstName', 'lastName'];
+  const stringFields = ['username', 'password', 'fullname'];
   const nonStringField = stringFields.find(
     field => field in req.body && typeof req.body[field] !== 'string'
   );
@@ -53,6 +54,10 @@ router.post('/', (req, res, next) => {
     });
   }
 
+  if (fullname) {
+    fullname = fullname.trim()
+  }
+
   const sizedFields = {
     username: {
       min: 1
@@ -67,12 +72,12 @@ router.post('/', (req, res, next) => {
   const tooSmallField = Object.keys(sizedFields).find(
     field =>
       'min' in sizedFields[field] &&
-            req.body[field].length < sizedFields[field].min
+      req.body[field].length < sizedFields[field].min
   );
   const tooLargeField = Object.keys(sizedFields).find(
     field =>
       'max' in sizedFields[field] &&
-            req.body[field].length > sizedFields[field].max
+      req.body[field].length > sizedFields[field].max
   );
 
   if (tooSmallField || tooLargeField) {
@@ -88,16 +93,14 @@ router.post('/', (req, res, next) => {
     });
   }
 
-//   const { fullName, username, password } = req.body;
- 
-    
-    
-    return User.hashPassword(password)
+
+
+  return User.hashPassword(password)
     .then(digest => {
       const newUser = {
         username,
         password: digest,
-        fullName
+        fullname
       };
       return User.create(newUser);
     })
