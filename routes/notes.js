@@ -75,19 +75,43 @@ router.get('/:id', (req, res, next) => {
 function validateFolders(folderId, userId) {
   return new Promise(function (resolve, reject) {
     if (folderId) {
-    Folder.find({ userId, _id: folderId })
-      .then(result => {
-        if (!(result.length)) {
-          const err = new Error('The folderid is not valid');
-          err.status = 400;
-          reject(err)
-        }
-        resolve('folder valid')
-      })
+      Folder.find({ userId, _id: folderId })
+        .then(result => {
+          if (!(result.length)) {
+            const err = new Error('The folderid is not valid');
+            err.status = 400;
+            reject(err)
+          }
+          resolve('folder valid')
+        })
     }
-    else { resolve ('no folder id in new note')}
+    else { resolve('no folder id in new note') }
   })
 }
+
+function validateTags(tags, userId) {
+  return new Promise(function (resolve, reject) {
+    if (tags) {
+      if (!(Array.isArray(tags))) {
+        const err = new Error('The tags property must be an array');
+        err.status = 400;
+        reject(err)
+      }
+      Tag.find({ $and: [{ _id: { $in: tags }, userId }] })
+        .then(result => {
+          if (tags.length !== result.length) {
+            const err = new Error('The `tags` array contains an invalid `id`');
+            err.status = 400;
+            reject(err)
+          }
+          else { resolve('tags valid') }
+        })
+    } else {
+      resolve('no tags')
+    }
+  })
+}
+
 
 
 
@@ -126,8 +150,8 @@ router.post('/', (req, res, next) => {
     delete newNote.folderId;
   }
 
-  Promise.all([validateFolders(folderId, userId)])
-.then((result) => {
+  Promise.all([validateFolders(folderId, userId), validateTags(newNote.tags, userId)])
+    .then((result) => {
       console.log(result)
       return Note.create(newNote)
     })
@@ -185,10 +209,10 @@ router.put('/:id', (req, res, next) => {
     delete toUpdate.folderId;
     toUpdate.$unset = { folderId: 1 };
   }
-  Promise.all([validateFolders(toUpdate.folderId, userId)])
-  .then(() => {
-  return Note.findOneAndUpdate({ _id: id, userId }, toUpdate, { new: true })
-  })
+  Promise.all([validateFolders(toUpdate.folderId, userId), validateTags(toUpdate.tags, userId)])
+    .then(() => {
+      return Note.findOneAndUpdate({ _id: id, userId }, toUpdate, { new: true })
+    })
     .then(result => {
       console.log(result)
       if (result) {
